@@ -5,7 +5,10 @@
 
 trigger:
 - main
-
+stages:
+- stage: Build
+  jobs:
+    - job: Build
 pool:
   vmImage: 'ubuntu-latest'
 
@@ -19,3 +22,29 @@ steps:
     npm install
     npm run build
   displayName: 'npm install and build'
+- task: VSTest@2  
+- task: PublishBuildArtifacts@1
+  inputs:
+    PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+    ArtifactName: 'drop'
+    publishLocation: 'Container'
+
+- stage: Deploy
+  jobs:
+  - job: Deploy
+    pool:
+      vmImage: 'vs2017-win2016'
+    steps:
+        - task: DownloadBuildArtifacts@0
+          inputs:
+            buildType: 'current'
+            downloadType: 'single'
+            downloadPath: '$(System.ArtifactsDirectory)'
+            artifactName: 'drop'
+        - task: AzureRmWebAppDeployment@4
+          inputs:
+            ConnectionType: 'AzureRM'
+            azureSubscription: 'Azure Pass - Sponsorship(0b105105-3e03-41ba-b374-83994ea6b375)'
+            appType: 'webApp'
+            WebAppName: 'az400-appNsql'
+            packageForLinux: '$(System.ArtifactsDirectory)/drop/*.zip'
